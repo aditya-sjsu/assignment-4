@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Google Sans", Roboto, Arial, sans-serif;
+        }
+
+        body {
+            background-color: white;
+            min-height: 100vh;
+            padding: 20px 40px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .header {
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            width: 180px;
+            height: auto;
+            margin-left: -8px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .label {
+            font-size: 16px;
+            color: #202124;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        .input-container, .response-container {
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            background: white;
+            min-height: 200px;
+        }
+
+        .input-box {
+            width: 100%;
+            min-height: 200px;
+            padding: 16px;
+            border: none;
+            resize: none;
+            font-size: 16px;
+            line-height: 1.5;
+            outline: none;
+            background: transparent;
+            color: #202124;
+        }
+
+        .response-box {
+            width: 100%;
+            min-height: 200px;
+            padding: 16px;
+            font-size: 16px;
+            line-height: 1.5;
+            background: transparent;
+            white-space: pre-wrap;
+            color: #202124;
+        }
+
+        .button-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 24px 0;
+        }
+
+        .button {
+            padding: 12px 80px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: #1a73e8;
+            color: white;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .button:hover {
+            background-color: #1557b0;
+        }
+
+        .button:disabled {
+            background-color: #dadce0;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            display: none;
+            color: #5f6368;
+            font-size: 14px;
+            margin-top: 8px;
+            padding-left: 16px;
+        }
+
+        .typing-indicator.visible {
+            display: block;
+        }
+
+        ::placeholder {
+            color: #5f6368;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="{{ url_for('static', filename='Google_Gemini_logo.png') }}" alt="Gemini" class="logo">
+    </div>
+    
+    <div class="section">
+        <div class="label">Prompt:</div>
+        <div class="input-container">
+            <textarea id="prompt-input" class="input-box" placeholder="Enter a prompt"></textarea>
+        </div>
+        <div class="button-container">
+            <button id="send-button" class="button">Send</button>
+            <button id="cancel-button" class="button">Cancel</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="label">Response:</div>
+        <div class="response-container">
+            <div id="response-output" class="response-box"></div>
+        </div>
+        <div id="typing-indicator" class="typing-indicator">Generating response...</div>
+    </div>
+
+    <script>
+        const promptInput = document.getElementById('prompt-input');
+        const responseOutput = document.getElementById('response-output');
+        const sendButton = document.getElementById('send-button');
+        const cancelButton = document.getElementById('cancel-button');
+        const typingIndicator = document.getElementById('typing-indicator');
+
+        function cleanResponse(text) {
+            return text.replace(/\*\*/g, '').replace(/\*/g, '');
+        }
+
+        async function sendPrompt() {
+            const prompt = promptInput.value.trim();
+            if (!prompt) return;
+
+            promptInput.disabled = true;
+            sendButton.disabled = true;
+            
+            typingIndicator.classList.add('visible');
+            responseOutput.textContent = '';
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: prompt }),
+                });
+
+                const data = await response.json();
+                
+                typingIndicator.classList.remove('visible');
+                
+                if (response.ok) {
+                    responseOutput.textContent = cleanResponse(data.response);
+                } else {
+                    responseOutput.textContent = 'An error occurred. Please try again.';
+                }
+            } catch (error) {
+                typingIndicator.classList.remove('visible');
+                responseOutput.textContent = 'An error occurred. Please try again.';
+            }
+
+            promptInput.disabled = false;
+            sendButton.disabled = false;
+        }
+
+        sendButton.addEventListener('click', sendPrompt);
+        cancelButton.addEventListener('click', () => {
+            promptInput.value = '';
+            responseOutput.textContent = '';
+            typingIndicator.classList.remove('visible');
+        });
+
+        promptInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendPrompt();
+            }
+        });
+    </script>
+</body>
+</html> 
